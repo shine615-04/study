@@ -18,8 +18,12 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--bg); background-image:var(--bg-img); background-size:cover; background-position:center;
+    background-color:var(--bg);
+    background-image:var(--bg-img);
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
     color:var(--ink); display:flex;flex-direction:column;height:100dvh;overflow:hidden; transition: background .3s;
   }
   header{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -361,22 +365,54 @@ if(store.customAccent){
   document.documentElement.style.setProperty('--accent', store.customAccent);
 }
 
-//本地上传背景
-$('#bgFileInput').onchange = function(e){
+//本地上传背景：选图后立即应用到页面背景
+const bgFileInput = $('#bgFileInput');
+const bgImgClear = $('#bgImgClear');
+
+function applyBgImg(dataUrl){
+  if(!dataUrl){
+    document.body.style.setProperty('--bg-img', 'none');
+    document.body.style.backgroundImage = 'none';
+    return;
+  }
+  const imgUrl = `url("${dataUrl}")`;
+  document.body.style.setProperty('--bg-img', imgUrl);
+  document.body.style.backgroundImage = imgUrl;
+}
+
+bgFileInput.addEventListener('change', function(e){
   const file = e.target.files[0];
-  if(!file)return;
+  if(!file) return;
+
+  if(file.size > 2 * 1024 * 1024){
+    alert('图片太大啦，建议选择 2MB 以内的照片');
+    bgFileInput.value = '';
+    return;
+  }
+
   const reader = new FileReader();
-  reader.onload = ev=>{
-    store.bgImg = `url(${ev.target.result})`;
+  reader.onload = function(ev){
+    const dataUrl = ev.target.result;
+    store.bgImg = dataUrl;
     save();
-    document.body.style.setProperty('--bg-img', store.bgImg);
+    applyBgImg(dataUrl);
+  };
+  reader.onerror = function(){
+    alert('图片读取失败，请重新选择');
   };
   reader.readAsDataURL(file);
-};
-$('#bgImgClear').onclick = () => {
-  store.bgImg = ''; save(); document.body.style.setProperty('--bg-img', 'none'); $('#bgFileInput').value='';
-};
-if(store.bgImg) document.body.style.setProperty('--bg-img', store.bgImg);
+});
+
+bgImgClear.addEventListener('click', function(){
+  store.bgImg = '';
+  save();
+  applyBgImg('');
+  bgFileInput.value = '';
+});
+
+if(store.bgImg){
+  applyBgImg(store.bgImg);
+}
 
 //番茄钟
 let timer = { total:25*60, left:25*60, running:false, id:null, accumulated:0 };
@@ -565,7 +601,6 @@ function drawWheel(){
     return;
   }
   const n = tasks.length, per = Math.PI*2/n;
-  //浅马卡龙浅色
   const colors = [
     '#c6d8f0','#f8d4c0','#b8e2d2','#ddcde4',
     '#d4cff0','#b8dce8','#f5e2bc','#eec8cf'
