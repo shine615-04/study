@@ -89,14 +89,41 @@
   canvas#wheel{max-width:100%;height:auto;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
   .wheel-pointer{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid var(--accent2);z-index:2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));}
   .wheel-result{text-align:center;font-size:16px;font-weight:700;margin-top:8px;min-height:24px;color:var(--accent)}
-  
-  /* 猫咪 */
-  #catCanvas{width:100%;height:300px;border-radius:14px;background:linear-gradient(var(--bg),var(--card));display:block;touch-action:none;}
-  .cat-bar{display:flex;gap:8px;margin-top:12px}
-  .feed-btn{flex:1}
+
+  /*宠物emoji版*/
+  .pet-container{height:300px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(var(--bg),var(--card));border-radius:14px;overflow:hidden;}
+  .pet-bubble{
+    position:absolute;top:20px;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:8px 12px;max-width:80%;
+    font-size:14px;color:var(--ink);z-index:2;
+  }
+  .pet-bubble::after{
+    content:"";position:absolute;left:50%;bottom:-8px;
+    transform:translateX(-50%);
+    border-left:8px solid transparent;border-right:8px solid transparent;
+    border-top:8px solid var(--line);
+  }
+  .pet-bubble::before{
+    content:"";position:absolute;left:50%;bottom:-6px;
+    transform:translateX(-50%);
+    border-left:7px solid transparent;border-right:7px solid transparent;
+    border-top:7px solid var(--card);
+  }
+  .pet-emoji{font-size:90px;transition:transform 0.2s;animation:petBreathe 3s infinite ease-in-out;}
+  .pet-emoji.happy{animation:petJump 0.4s ease;}
+  @keyframes petBreathe{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.05)}
+  }
+  @keyframes petJump{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-20px)}
+  }
   .love-bubble{position:absolute;font-size:20px;pointer-events:none;animation:float 1.6s ease-out forwards;}
   @keyframes float{to{transform:translateY(-60px) scale(1.4);opacity:0}}
-  .cat-fallback{height:300px;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0.7;}
+  .cat-bar{display:flex;gap:8px;margin-top:12px}
+  .feed-btn{flex:1}
 
   nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);opacity:.95;backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:50;}
   nav a{flex:1;text-align:center;padding:10px 0 12px;font-size:11px;color:var(--sub);text-decoration:none;cursor:pointer;transition:.15s;}
@@ -119,7 +146,6 @@
   <div class="today" id="todayLabel"></div>
 </header>
 <main>
-  <!-- 打卡页 -->
   <section class="page active" id="page-home">
     <div class="card">
       <h3><span class="dot"></span>专注计时</h3>
@@ -151,7 +177,6 @@
       <p class="muted" style="margin:12px 0 0">💡 学习满5分钟即可打卡并获得猫粮，中途结束也会结算哦！</p>
     </div>
   </section>
-  <!-- 待办页 -->
   <section class="page" id="page-todo">
     <div class="card">
       <h3><span class="dot"></span>添加事项</h3>
@@ -168,7 +193,6 @@
       <div id="taskList"></div>
     </div>
   </section>
-  <!-- 课表页 -->
   <section class="page" id="page-schedule">
     <div class="card">
       <h3><span class="dot"></span>我的课表</h3>
@@ -184,7 +208,6 @@
       </div>
     </div>
   </section>
-  <!-- 转盘页 -->
   <section class="page" id="page-wheel">
     <div class="card">
       <h3><span class="dot"></span>命运转盘</h3>
@@ -197,49 +220,49 @@
       <button id="wheelSpin" style="width:100%;margin-top:8px">转一下</button>
     </div>
   </section>
-  <!-- 宠物页 -->
   <section class="page" id="page-cat">
-    <div class="card" style="position:relative">
+    <div class="card">
       <h3><span class="dot"></span>陪学小宠</h3>
-      <div id="catCanvasWrap">
-        <canvas id="catCanvas"></canvas>
+      <div class="pet-container">
+        <div class="pet-bubble" id="petBubble">它正在看着你学习…</div>
+        <div class="pet-emoji" id="petEmoji">🐱</div>
       </div>
-      <div class="chips" style="margin-top:10px" id="catBreed">
-        <div class="chip on" data-breed="calico">三花</div>
-        <div class="chip" data-breed="tabby">狸花</div>
-        <div class="chip" data-breed="orange">橘猫</div>
-        <div class="chip" data-breed="white">白猫</div>
+      <div class="chips" style="margin-top:10px" id="petBreed">
+        <div class="chip on" data-pet="cat">小猫咪 🐱</div>
+        <div class="chip" data-pet="dog">小修狗 🐶</div>
       </div>
       <div class="row" style="margin-top:10px">
-        <input id="catName" placeholder="给小宠起个名字">
-        <button class="ghost" id="catNameSave" style="flex:0;padding:10px 14px">保存</button>
+        <input id="petName" placeholder="给小宠起个名字">
+        <button class="ghost" id="petNameSave" style="flex:0;padding:10px 14px">保存</button>
       </div>
       <div class="cat-bar">
-        <button class="feed-btn warm" id="feedCat">喂食 🍖 <span id="foodCount">(0)</span></button>
-        <button class="feed-btn ghost" id="petCat">摸摸 🐾</button>
+        <button class="feed-btn warm" id="feedPet">喂食 🍖 <span id="foodCount">(0)</span></button>
+        <button class="feed-btn ghost" id="petTouch">摸摸 🐾</button>
       </div>
-      <p class="muted" style="margin:10px 0 0" id="catMood">它正在看着你学习…</p>
     </div>
   </section>
-  <!-- 设置页 -->
   <section class="page" id="page-settings">
     <div class="card">
       <h3><span class="dot"></span>个性化设置</h3>
       <p class="muted" style="margin:0 0 8px">修改名字</p>
       <input id="userNameInput" placeholder="输入你的名字">
-      
-      <p class="muted" style="margin:16px 0 8px">主题颜色</p>
+
+      <p class="muted" style="margin:16px 0 8px">主题颜色预设</p>
       <div class="chips" id="themePicker">
         <div class="chip on" data-theme="default">默认米白</div>
         <div class="chip" data-theme="pink">樱花粉</div>
         <div class="chip" data-theme="green">薄荷绿</div>
         <div class="chip" data-theme="dark">暗黑模式</div>
       </div>
-      <p class="muted" style="margin:16px 0 8px">自定义背景图 (输入图片网址)</p>
+
+      <p class="muted" style="margin:16px 0 8px">自定义主色调</p>
       <div class="row">
-        <input id="bgImgInput" placeholder="https://...">
-        <button id="bgImgSave" style="flex:0;padding:10px 14px">应用</button>
+        <input type="color" id="accentColorPicker" style="width:50px;padding:2px;">
+        <button id="applyAccent" style="flex:0;padding:10px 12px">应用颜色</button>
       </div>
+
+      <p class="muted" style="margin:16px 0 8px">上传自定义背景图片</p>
+      <input type="file" accept="image/*" id="bgFileInput">
       <button class="ghost" id="bgImgClear" style="width:100%;margin-top:8px">恢复默认背景</button>
     </div>
   </section>
@@ -261,7 +284,6 @@
   </div>
 </div>
 <script>
-/* ================= 数据层 ================= */
 const KEY = 'lin-study-v2';
 const todayStr = () => new Date().toISOString().slice(0,10);
 let store = load();
@@ -270,20 +292,21 @@ function load(){
     const s = JSON.parse(localStorage.getItem(KEY));
     if(s) {
       if(!s.userName) s.userName = '霖';
-      if(!s.cat) s.cat = {breed:'calico', name:'', food:0};
+      if(!s.pet) s.pet = {type:'cat', name:'', food:0};
+      if(!s.customAccent) s.customAccent = "";
       return s;
     }
   }catch(e){}
   return {
     userName: '霖', tasks: [], schedule: {}, wake:'07:00', sleep:'23:00',
-    studyLog: {}, checkinDays: [], cat:{breed:'calico', name:'', food:0},
-    theme: 'default', bgImg: ''
+    studyLog: {}, checkinDays: [], pet:{type:'cat', name:'', food:0},
+    theme: 'default', bgImg: '', customAccent:''
   };
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(store)); }
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-/* ================= 页面切换 ================= */
+
 $$('nav a').forEach(a=>{
   a.onclick = ()=>{
     $$('nav a').forEach(x=>x.classList.remove('on'));
@@ -291,10 +314,10 @@ $$('nav a').forEach(a=>{
     $$('.page').forEach(p=>p.classList.remove('active'));
     $('#page-'+a.dataset.page).classList.add('active');
     if(a.dataset.page==='wheel') drawWheel();
-    if(a.dataset.page==='cat') initCat();
+    if(a.dataset.page==='cat') renderPet();
   };
 });
-/* ================= 渲染主页头部 & 设置 ================= */
+
 function renderHeader(){
   $('#appTitle').innerHTML = `${store.userName}<span>今天学了吗</span>`;
   document.title = `${store.userName}今天学了吗`;
@@ -310,24 +333,52 @@ function editTitle(){
 $('#todayLabel').textContent = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
 $('#userNameInput').value = store.userName;
 $('#userNameInput').onchange = e => { store.userName = e.target.value || '霖'; save(); renderHeader(); };
+
 $$('#themePicker .chip').forEach(c => {
   if(c.dataset.theme === store.theme) c.classList.add('on'); else c.classList.remove('on');
   c.onclick = () => {
-    store.theme = c.dataset.theme; save(); document.body.dataset.theme = store.theme;
+    store.theme = c.dataset.theme;
+    store.customAccent = "";
+    save();
+    document.body.dataset.theme = store.theme;
+    document.documentElement.style.setProperty('--accent','');
     $$('#themePicker .chip').forEach(x => x.classList.remove('on')); c.classList.add('on');
     setTimeout(drawWheel, 100);
   };
 });
 document.body.dataset.theme = store.theme;
-$('#bgImgSave').onclick = () => {
-  const url = $('#bgImgInput').value.trim();
-  if(url){ store.bgImg = `url(${url})`; save(); document.body.style.setProperty('--bg-img', store.bgImg); }
+
+//自定义主色调
+$('#accentColorPicker').value = store.customAccent || "#6c8cff";
+$('#applyAccent').onclick = ()=>{
+  const col = $('#accentColorPicker').value;
+  store.customAccent = col;
+  save();
+  document.documentElement.style.setProperty('--accent', col);
+  setTimeout(drawWheel,100);
+};
+if(store.customAccent){
+  document.documentElement.style.setProperty('--accent', store.customAccent);
+}
+
+//本地上传背景
+$('#bgFileInput').onchange = function(e){
+  const file = e.target.files[0];
+  if(!file)return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    store.bgImg = `url(${ev.target.result})`;
+    save();
+    document.body.style.setProperty('--bg-img', store.bgImg);
+  };
+  reader.readAsDataURL(file);
 };
 $('#bgImgClear').onclick = () => {
-  store.bgImg = ''; save(); document.body.style.setProperty('--bg-img', 'none'); $('#bgImgInput').value = '';
+  store.bgImg = ''; save(); document.body.style.setProperty('--bg-img', 'none'); $('#bgFileInput').value='';
 };
 if(store.bgImg) document.body.style.setProperty('--bg-img', store.bgImg);
-/* ================= 番茄钟 ================= */
+
+//番茄钟
 let timer = { total:25*60, left:25*60, running:false, id:null, accumulated:0 };
 function renderTimer(){
   const m = Math.floor(timer.left/60), s = timer.left%60;
@@ -371,7 +422,7 @@ function onFocusDone(seconds){
   const d = todayStr();
   store.studyLog[d] = (store.studyLog[d]||0) + min;
   if(!store.checkinDays.includes(d)) store.checkinDays.push(d);
-  store.cat.food = (store.cat.food||0) + 1; save(); renderStats(); updateFoodUI();
+  store.pet.food = (store.pet.food||0) + 1; save(); renderStats(); updateFoodUI();
   alert(`🎉 专注完成！记录 ${min} 分钟，打卡成功并获得 1 个猫粮～`);
 }
 function renderStats(){
@@ -380,7 +431,8 @@ function renderStats(){
   $('#stTotal').textContent = Object.values(store.studyLog).reduce((a,b)=>a+b,0);
   $('#stDays').textContent = store.checkinDays.length;
 }
-/* ================= 待办 & 行内编辑 ================= */
+
+//待办
 function renderTasks(){
   const list = $('#taskList');
   const arr = [...store.tasks].sort((a,b)=>{
@@ -388,7 +440,6 @@ function renderTasks(){
     return (a.ddl?new Date(a.ddl).getTime():Infinity) - (b.ddl?new Date(b.ddl).getTime():Infinity);
   });
   if(!arr.length){ list.innerHTML='<p class="muted">还没有事项，去添加吧～</p>'; return; }
-  
   list.innerHTML = arr.map(t=>{
     let latestTxt = '随时'; let urgent = false; let label = '无截止';
     if(t.ddl){
@@ -400,7 +451,6 @@ function renderTasks(){
       const latestTs = ddlTs - ((t.est || 60) * 60000);
       latestTxt = new Date(latestTs).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
     }
-    
     return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}">
       <div class="task">
         <div class="check" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
@@ -444,7 +494,7 @@ function saveEdit(id){
 }
 function toggleTask(id){
   const t = store.tasks.find(x=>x.id==id);
-  if(t){ t.done = !t.done; if(t.done){ store.cat.food = (store.cat.food||0)+1; updateFoodUI(); } save(); renderTasks(); }
+  if(t){ t.done = !t.done; if(t.done){ store.pet.food = (store.pet.food||0)+1; updateFoodUI(); } save(); renderTasks(); }
 }
 function delTask(id){
   if(confirm('确定删除吗？')){
@@ -457,7 +507,8 @@ $('#taskAdd').onclick = ()=>{
   store.tasks.push({ id:Date.now(), name, ddl:$('#taskDDL').value||'', est:parseInt($('#taskEst').value)||60, done:false });
   $('#taskName').value=''; $('#taskDDL').value=''; save(); renderTasks();
 };
-/* ================= 课表 ================= */
+
+//课表
 const WEEK = ['日','一','二','三','四','五','六'];
 let selDay = new Date().getDay();
 function renderWeek(){
@@ -491,71 +542,48 @@ $('#slotAdd').onclick = ()=>{
 $('#wakeTime').onchange = e=>{store.wake=e.target.value;save();};
 $('#sleepTime').onchange = e=>{store.sleep=e.target.value;save();};
 
-/* ================= 转盘 (修复模糊 + 柔和配色) ================= */
+//转盘 浅马卡龙
 let wheelRot = 0, spinning = false;
 function drawWheel(){
   const cv = $('#wheel'); if(!cv) return;
   const boxSize = cv.clientWidth;
-  if(boxSize <= 10) return;
-
-  const dpr = window.devicePixelRatio || 2;
-  cv.width = boxSize * dpr;
-  cv.height = boxSize * dpr;
-  cv.style.width = boxSize + "px";
-  cv.style.height = boxSize + "px";
-
+  if(boxSize <=10) return;
+  const dpr = window.devicePixelRatio||2;
+  cv.width = boxSize*dpr; cv.height=boxSize*dpr;
+  cv.style.width = boxSize+"px"; cv.style.height=boxSize+"px";
   const ctx = cv.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const cx = boxSize/2, cy = boxSize/2, r = boxSize/2 - 6;
+  ctx.scale(dpr,dpr);
+  const cx = boxSize/2, cy=boxSize/2, r=boxSize/2-6;
   ctx.clearRect(0,0,boxSize,boxSize);
-
   const tasks = store.tasks.filter(t=>!t.done);
   if(!tasks.length){
     ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--line');
-    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--sub');
-    ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('暂无待决定事项', cx, cy);
+    ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('暂无待决定事项',cx,cy);
     return;
   }
-  const n = tasks.length, per = Math.PI*2 / n;
-  //【修改：柔和莫兰迪配色，去掉刺眼亮色】
+  const n = tasks.length, per = Math.PI*2/n;
+  //浅马卡龙浅色
   const colors = [
-    '#748cc0','#e6a882','#62b394','#b48fb8',
-    '#8e82c2','#58a1b8','#d4b07a','#c27c8c'
+    '#c6d8f0','#f8d4c0','#b8e2d2','#ddcde4',
+    '#d4cff0','#b8dce8','#f5e2bc','#eec8cf'
   ];
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(wheelRot);
-
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(wheelRot);
   for(let i=0;i<n;i++){
-    ctx.beginPath();
-    ctx.moveTo(0,0);
-    ctx.arc(0,0, r, i*per, (i+1)*per);
-    ctx.closePath();
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
-
-    ctx.save();
-    ctx.rotate(i*per + per/2);
-    // 文字设置：加大字号 + 白色描边，解决模糊看不清
-    const textMaxLen = 10;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,i*per,(i+1)*per); ctx.closePath();
+    ctx.fillStyle = colors[i%colors.length]; ctx.fill();
+    ctx.save(); ctx.rotate(i*per+per/2);
     let label = tasks[i].name;
-    label = label.length>textMaxLen ? label.slice(0,textMaxLen)+'…' : label;
-    ctx.font='bold 15px sans-serif';
-    ctx.textAlign='right';
-    ctx.textBaseline='middle';
-    ctx.strokeStyle="#ffffff";
-    ctx.lineWidth=2;
-    ctx.strokeText(label, r-16, 0);
-    ctx.fillStyle="#222222";
-    ctx.fillText(label, r-16, 0);
+    label = label.length>10 ? label.slice(0,10)+'…' : label;
+    ctx.font='bold 15px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.strokeStyle="#ffffff"; ctx.lineWidth=2; ctx.strokeText(label,r-16,0);
+    ctx.fillStyle="#333333"; ctx.fillText(label,r-16,0);
     ctx.restore();
   }
   ctx.restore();
 }
-
 $('#wheelSpin').onclick = ()=>{
   if(spinning) return;
   const tasks = store.tasks.filter(t=>!t.done);
@@ -580,171 +608,62 @@ $('#wheelSpin').onclick = ()=>{
   requestAnimationFrame(anim);
 };
 
-/* ================= 3D猫咪 修复加载 + 降级兜底 ================= */
-let catThree = null;
-let catLoadTried = false;
-
-function initCat(){
-  const cv = $('#catCanvas');
-  const wrap = $('#catCanvasWrap');
-  if(!cv) return;
-  //清理旧实例
-  if(catThree){
-    catThree.renderer.dispose();
-    catThree = null;
-  }
-  wrap.querySelectorAll('.cat-fallback').forEach(d=>d.remove());
-
-  const w = cv.clientWidth || 320;
-  cv.width = w * devicePixelRatio;
-  cv.height = 300 * devicePixelRatio;
-  cv.style.display = "block";
-
-  if(!window.THREE && !catLoadTried){
-    catLoadTried = true;
-    $('#catMood').textContent = '正在加载3D猫咪资源…';
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
-    s.onload = ()=>{
-      setTimeout(initCat,100);
-    };
-    s.onerror = ()=>{
-      //加载失败，2D emoji降级
-      cv.style.display = 'none';
-      const fb = document.createElement('div');
-      fb.className = 'cat-fallback';
-      fb.innerText = '🐱';
-      wrap.appendChild(fb);
-      $('#catMood').textContent = '3D引擎加载失败，你依然可以喂食和摸猫';
-    };
-    document.head.appendChild(s);
-    return;
-  }
-  if(!window.THREE){
-    cv.style.display = 'none';
-    const fb = document.createElement('div');
-    fb.className = 'cat-fallback';
-    fb.innerText = '🐱';
-    wrap.appendChild(fb);
-    return;
-  }
-
-  $('#catMood').textContent = '它正在看着你学习…';
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, w/300, 0.1, 100);
-  camera.position.set(0, 1.6, 6);
-  camera.lookAt(0, 0.6, 0);
-  const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true, powerPreference:"low-power"});
-  renderer.setPixelRatio(devicePixelRatio);
-  renderer.setSize(w, 300, false);
-
-  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-  const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(3,5,4); scene.add(dl);
-  const pl = new THREE.PointLight(0xffd7a8, 1.5, 20); pl.position.set(-3,2,3); scene.add(pl);
-
-  const cat = new THREE.Group();
-  scene.add(cat);
-  const palette = {
-    calico:{body:0xf5f0e6, patch1:0xe8955a, patch2:0x3a3330, nose:0xffb3b3},
-    tabby:{body:0x9a8a72, patch1:0x5c5040, patch2:0x3a3330, nose:0xffc4c4},
-    orange:{body:0xf2a44e, patch1:0xe08b34, patch2:0xffffff, nose:0xffb3b3},
-    white:{body:0xf7f4ee, patch1:0xe8e2d6, patch2:0xffffff, nose:0xffb3b3},
-  };
-  const p = palette[store.cat.breed] || palette.calico;
-  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
-  body.scale.set(1, 1.1, 1); body.position.y = 0.6; cat.add(body);
-
-  const patch = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 20), new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8}));
-  patch.scale.set(1,1.1,.5); patch.position.set(0.4,0.7,0.7); cat.add(patch);
-  const patch2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), new THREE.MeshStandardMaterial({color:p.patch2, roughness:.8}));
-  patch2.position.set(-0.5,0.4,0.65); cat.add(patch2);
-
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 24, 24), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
-  head.position.set(0, 1.7, 0.1); cat.add(head);
-
-  const earGeo = new THREE.ConeGeometry(0.22, 0.42, 12);
-  const earMat = new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8});
-  const earL = new THREE.Mesh(earGeo, earMat); earL.position.set(-0.38,2.2,0.1); cat.add(earL);
-  const earR = new THREE.Mesh(earGeo, earMat); earR.position.set(0.38,2.2,0.1); cat.add(earR);
-
-  const eyeMat = new THREE.MeshStandardMaterial({color:0x2c2a26, roughness:.2});
-  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09,12,12), eyeMat);
-  eyeL.position.set(-0.22,1.78,0.62); cat.add(eyeL);
-  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09,12,12), eyeMat);
-  eyeR.position.set(0.22,1.78,0.62); cat.add(eyeR);
-
-  const hiMat = new THREE.MeshBasicMaterial({color:0xffffff});
-  const hiL = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiL.position.set(-0.20,1.81,0.69); cat.add(hiL);
-  const hiR = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiR.position.set(0.24,1.81,0.69); cat.add(hiR);
-
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07,12,12), new THREE.MeshStandardMaterial({color:p.nose}));
-  nose.position.set(0,1.62,0.7); cat.add(nose);
-
-  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.09, 8, 30, Math.PI*1.4), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
-  tail.position.set(-0.9, 0.7, -0.4); tail.rotation.z = Math.PI*0.15; cat.add(tail);
-
-  const footMat = new THREE.MeshStandardMaterial({color:p.body, roughness:.8});
-  [[-0.55,0.1,0.55],[0.55,0.1,0.55]].forEach(([x,y,z])=>{
-    const f = new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12), footMat);
-    f.position.set(x,y,z); cat.add(f);
-  });
-
-  catThree = {scene, camera, renderer, cat, head, eyeL, eyeR, tail, t:0, happy:0};
-
-  function bubble(emoji){
-    const wrapEl = $('#catCanvas').parentElement;
-    const el = document.createElement('div'); el.className='love-bubble'; el.textContent = emoji;
-    el.style.left = (40+Math.random()*60)+'%'; el.style.top = '40%';
-    wrapEl.appendChild(el); setTimeout(()=>el.remove(),1600);
-  }
-
-  $('#feedCat').onclick = ()=>{
-    if(!store.cat.food || store.cat.food<=0){ $('#catMood').textContent = '它还不饿，完成学习获得猫粮再来吧～'; return; }
-    store.cat.food--; save(); updateFoodUI();
-    if(catThree) catThree.happy = 1;
-    $('#catMood').textContent = '😋 好吃！喵～ 谢谢你！'; bubble('🍖');
-  };
-  $('#petCat').onclick = ()=>{
-    if(catThree) catThree.happy = 1;
-    const msgs = ['咕噜咕噜～','蹭蹭你～','喵？','舒服！','再摸摸～'];
-    $('#catMood').textContent = '😺 ' + msgs[Math.floor(Math.random()*msgs.length)]; bubble('❤️');
-  };
-
-  $('#catNameSave').onclick = ()=>{
-    store.cat.name = $('#catName').value.trim(); save();
-    $('#catMood').textContent = store.cat.name ? `${store.cat.name} 记住了自己的名字～` : '它还没名字哦';
-  };
-  if(store.cat.name) $('#catName').value = store.cat.name;
-
-  function animate(){
-    if(!catThree) return;
-    requestAnimationFrame(animate);
-    catThree.t += 0.016;
-    catThree.cat.rotation.y = Math.sin(catThree.t*0.6)*0.25;
-    body.scale.y = 1.1 + Math.sin(catThree.t*2)*0.02;
-    tail.rotation.z = Math.PI*0.15 + Math.sin(catThree.t*3)*0.25;
-    if(catThree.happy>0){ catThree.happy -= 0.03; catThree.cat.position.y = Math.abs(Math.sin(catThree.t*10))*0.15; } else { catThree.cat.position.y = 0; }
-    const blink = Math.sin(catThree.t*0.7) > 0.98 ? 0.2 : 1;
-    eyeL.scale.y = blink; eyeR.scale.y = blink;
-    catThree.renderer.render(catThree.scene, catThree.camera);
-  }
-  animate();
-
-  $$('#catBreed .chip').forEach(c=>{
-    if(c.dataset.breed===store.cat.breed) c.classList.add('on'); else c.classList.remove('on');
-    c.onclick = ()=>{
-      store.cat.breed = c.dataset.breed; save();
-      catThree = null;
-      $('#catCanvas').parentElement.querySelectorAll('.love-bubble').forEach(x=>x.remove());
-      initCat();
-    };
+//宠物：猫/狗二选一，气泡在宠物上方
+const petEmojis = {cat:"🐱",dog:"🐶"};
+const petTexts = {
+  normal:["它正在看着你学习…","乖乖陪你学习哦","加油努力学习！"],
+  feed:["😋好吃！谢谢！","呜哇好香！","太美味啦！"],
+  touch:["咕噜咕噜～","蹭蹭你！","好舒服！"]
+};
+function renderPet(){
+  $('#petEmoji').textContent = petEmojis[store.pet.type||'cat'];
+  $('#petName').value = store.pet.name||"";
+  updateFoodUI();
+  $$('#petBreed .chip').forEach(c=>{
+    c.classList.toggle('on', c.dataset.pet === store.pet.type);
   });
 }
+function setPetBubble(txt){
+  $('#petBubble').textContent = txt;
+}
+function petHappyAnim(){
+  const el = $('#petEmoji');
+  el.classList.add('happy');
+  setTimeout(()=>el.classList.remove('happy'),400);
+}
+function bubbleEmoji(emo){
+  const wrap = $('.pet-container');
+  const d = document.createElement('div');
+  d.className="love-bubble"; d.textContent=emo;
+  d.style.left=(30+Math.random()*40)+"%";d.style.top="30%";
+  wrap.appendChild(d); setTimeout(()=>d.remove(),1600);
+}
+$('#feedPet').onclick=()=>{
+  if(!store.pet.food||store.pet.food<=0){
+    setPetBubble("还没有食物，快去学习获取！");
+    return;
+  }
+  store.pet.food -=1; save(); updateFoodUI(); petHappyAnim(); bubbleEmoji("🍖");
+  const arr = petTexts.feed;
+  setPetBubble(arr[Math.floor(Math.random()*arr.length)]);
+};
+$('#petTouch').onclick=()=>{
+  petHappyAnim(); bubbleEmoji("❤️");
+  const arr = petTexts.touch;
+  setPetBubble(arr[Math.floor(Math.random()*arr.length)]);
+};
+$('#petNameSave').onclick=()=>{
+  store.pet.name = $('#petName').value.trim(); save();
+  setPetBubble(store.pet.name ? `${store.pet.name}记住自己名字啦` : "还没有名字");
+};
+$$('#petBreed .chip').forEach(c=>{
+  c.onclick=()=>{
+    store.pet.type = c.dataset.pet; save(); renderPet();
+  };
+});
+function updateFoodUI(){ const el = $('#foodCount'); if(el) el.textContent = `(${store.pet.food||0})`; }
 
-function updateFoodUI(){ const el = $('#foodCount'); if(el) el.textContent = `(${store.cat.food || 0})`; }
-if(store.cat.name) $('#catName').value = store.cat.name;
-
-/* ================= 进入弹窗 ================= */
+//弹窗
 function updateEntry(){
   const pending = store.tasks.filter(t=>!t.done);
   const list = $('#entryList');
@@ -760,18 +679,11 @@ function updateEntry(){
 setTimeout(()=>{ updateEntry(); $('#entryModal').classList.add('show'); }, 500);
 $('#entryClose').onclick = ()=> $('#entryModal').classList.remove('show');
 
-/* ================= 初始化 ================= */
-renderHeader(); renderStats(); renderTasks(); renderWeek(); renderSlots(); updateFoodUI();
+//初始化
+renderHeader(); renderStats(); renderTasks(); renderWeek(); renderSlots(); renderPet();
 $('#wakeTime').value = store.wake; $('#sleepTime').value = store.sleep;
-setTimeout(drawWheel, 300);
-
-window.addEventListener('resize', ()=>{
-  if(catThree && catThree.renderer){
-    const w = $('#catCanvas').clientWidth || 300;
-    catThree.renderer.setSize(w, 300, false);
-  }
-  drawWheel();
-});
+setTimeout(drawWheel,300);
+window.addEventListener('resize',()=>{drawWheel();});
 </script>
 </body>
 </html>
