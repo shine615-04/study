@@ -96,7 +96,8 @@
   .feed-btn{flex:1}
   .love-bubble{position:absolute;font-size:20px;pointer-events:none;animation:float 1.6s ease-out forwards;}
   @keyframes float{to{transform:translateY(-60px) scale(1.4);opacity:0}}
-  
+  .cat-fallback{height:300px;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0.7;}
+
   nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);opacity:.95;backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:50;}
   nav a{flex:1;text-align:center;padding:10px 0 12px;font-size:11px;color:var(--sub);text-decoration:none;cursor:pointer;transition:.15s;}
   nav a .ico{display:block;font-size:19px;margin-bottom:2px}
@@ -113,12 +114,10 @@
 </style>
 </head>
 <body data-theme="default">
-
 <header>
   <h1 id="appTitle" onclick="editTitle()">霖<span>今天学了吗</span></h1>
   <div class="today" id="todayLabel"></div>
 </header>
-
 <main>
   <!-- 打卡页 -->
   <section class="page active" id="page-home">
@@ -152,7 +151,6 @@
       <p class="muted" style="margin:12px 0 0">💡 学习满5分钟即可打卡并获得猫粮，中途结束也会结算哦！</p>
     </div>
   </section>
-
   <!-- 待办页 -->
   <section class="page" id="page-todo">
     <div class="card">
@@ -170,7 +168,6 @@
       <div id="taskList"></div>
     </div>
   </section>
-
   <!-- 课表页 -->
   <section class="page" id="page-schedule">
     <div class="card">
@@ -187,7 +184,6 @@
       </div>
     </div>
   </section>
-
   <!-- 转盘页 -->
   <section class="page" id="page-wheel">
     <div class="card">
@@ -201,12 +197,13 @@
       <button id="wheelSpin" style="width:100%;margin-top:8px">转一下</button>
     </div>
   </section>
-
   <!-- 宠物页 -->
   <section class="page" id="page-cat">
     <div class="card" style="position:relative">
       <h3><span class="dot"></span>陪学小宠</h3>
-      <canvas id="catCanvas"></canvas>
+      <div id="catCanvasWrap">
+        <canvas id="catCanvas"></canvas>
+      </div>
       <div class="chips" style="margin-top:10px" id="catBreed">
         <div class="chip on" data-breed="calico">三花</div>
         <div class="chip" data-breed="tabby">狸花</div>
@@ -224,7 +221,6 @@
       <p class="muted" style="margin:10px 0 0" id="catMood">它正在看着你学习…</p>
     </div>
   </section>
-
   <!-- 设置页 -->
   <section class="page" id="page-settings">
     <div class="card">
@@ -239,7 +235,6 @@
         <div class="chip" data-theme="green">薄荷绿</div>
         <div class="chip" data-theme="dark">暗黑模式</div>
       </div>
-
       <p class="muted" style="margin:16px 0 8px">自定义背景图 (输入图片网址)</p>
       <div class="row">
         <input id="bgImgInput" placeholder="https://...">
@@ -249,7 +244,6 @@
     </div>
   </section>
 </main>
-
 <nav>
   <a class="on" data-page="home"><span class="ico">⏱</span>打卡</a>
   <a data-page="todo"><span class="ico">📝</span>待办</a>
@@ -258,7 +252,6 @@
   <a data-page="cat"><span class="ico">🐱</span>小宠</a>
   <a data-page="settings"><span class="ico">⚙️</span>设置</a>
 </nav>
-
 <div class="modal-mask" id="entryModal">
   <div class="modal">
     <h3 id="entryTitle">今天也要加油 🌱</h3>
@@ -267,13 +260,11 @@
     <button id="entryClose" style="width:100%">知道啦</button>
   </div>
 </div>
-
 <script>
 /* ================= 数据层 ================= */
 const KEY = 'lin-study-v2';
 const todayStr = () => new Date().toISOString().slice(0,10);
 let store = load();
-
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -292,7 +283,6 @@ function load(){
 function save(){ localStorage.setItem(KEY, JSON.stringify(store)); }
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-
 /* ================= 页面切换 ================= */
 $$('nav a').forEach(a=>{
   a.onclick = ()=>{
@@ -304,7 +294,6 @@ $$('nav a').forEach(a=>{
     if(a.dataset.page==='cat') initCat();
   };
 });
-
 /* ================= 渲染主页头部 & 设置 ================= */
 function renderHeader(){
   $('#appTitle').innerHTML = `${store.userName}<span>今天学了吗</span>`;
@@ -319,7 +308,6 @@ function editTitle(){
   }
 }
 $('#todayLabel').textContent = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
-
 $('#userNameInput').value = store.userName;
 $('#userNameInput').onchange = e => { store.userName = e.target.value || '霖'; save(); renderHeader(); };
 $$('#themePicker .chip').forEach(c => {
@@ -339,7 +327,6 @@ $('#bgImgClear').onclick = () => {
   store.bgImg = ''; save(); document.body.style.setProperty('--bg-img', 'none'); $('#bgImgInput').value = '';
 };
 if(store.bgImg) document.body.style.setProperty('--bg-img', store.bgImg);
-
 /* ================= 番茄钟 ================= */
 let timer = { total:25*60, left:25*60, running:false, id:null, accumulated:0 };
 function renderTimer(){
@@ -360,7 +347,6 @@ $$('.chip[data-min]').forEach(c=>{
   };
 });
 $('#customTimeInput').onchange = e => { let v = parseInt(e.target.value); if(v > 0) setTimerMode(v); };
-
 $('#timerStart').onclick = ()=>{
   if(timer.running){ clearInterval(timer.id); timer.running=false; $('#timerStart').textContent='继续'; return; }
   timer.running = true; $('#timerStart').textContent='暂停';
@@ -394,7 +380,6 @@ function renderStats(){
   $('#stTotal').textContent = Object.values(store.studyLog).reduce((a,b)=>a+b,0);
   $('#stDays').textContent = store.checkinDays.length;
 }
-
 /* ================= 待办 & 行内编辑 ================= */
 function renderTasks(){
   const list = $('#taskList');
@@ -472,7 +457,6 @@ $('#taskAdd').onclick = ()=>{
   store.tasks.push({ id:Date.now(), name, ddl:$('#taskDDL').value||'', est:parseInt($('#taskEst').value)||60, done:false });
   $('#taskName').value=''; $('#taskDDL').value=''; save(); renderTasks();
 };
-
 /* ================= 课表 ================= */
 const WEEK = ['日','一','二','三','四','五','六'];
 let selDay = new Date().getDay();
@@ -507,46 +491,71 @@ $('#slotAdd').onclick = ()=>{
 $('#wakeTime').onchange = e=>{store.wake=e.target.value;save();};
 $('#sleepTime').onchange = e=>{store.sleep=e.target.value;save();};
 
-/* ================= 转盘 (高清渲染) ================= */
+/* ================= 转盘 (修复模糊 + 柔和配色) ================= */
 let wheelRot = 0, spinning = false;
 function drawWheel(){
   const cv = $('#wheel'); if(!cv) return;
-  const size = cv.clientWidth; 
-  if(size === 0) return;
-  
-  const dpr = window.devicePixelRatio || 1;
-  cv.width = size * dpr; 
-  cv.height = size * dpr;
-  
+  const boxSize = cv.clientWidth;
+  if(boxSize <= 10) return;
+
+  const dpr = window.devicePixelRatio || 2;
+  cv.width = boxSize * dpr;
+  cv.height = boxSize * dpr;
+  cv.style.width = boxSize + "px";
+  cv.style.height = boxSize + "px";
+
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  const cx = size/2, cy = size/2, r = size/2 - 4;
-  ctx.clearRect(0,0,size,size);
-  
+  const cx = boxSize/2, cy = boxSize/2, r = boxSize/2 - 6;
+  ctx.clearRect(0,0,boxSize,boxSize);
+
   const tasks = store.tasks.filter(t=>!t.done);
   if(!tasks.length){
     ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--line');
-    ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
-    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--sub'); 
-    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--sub');
+    ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('暂无待决定事项', cx, cy);
     return;
   }
-  const n = tasks.length, per = Math.PI*2/n;
-  const colors = ['#6c8cff','#ff9f6b','#4bb98a','#e07fb5','#b08cff','#5bc9d6','#f2c14e'];
-  
-  ctx.save(); ctx.translate(cx,cy); ctx.rotate(wheelRot);
+  const n = tasks.length, per = Math.PI*2 / n;
+  //【修改：柔和莫兰迪配色，去掉刺眼亮色】
+  const colors = [
+    '#748cc0','#e6a882','#62b394','#b48fb8',
+    '#8e82c2','#58a1b8','#d4b07a','#c27c8c'
+  ];
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(wheelRot);
+
   for(let i=0;i<n;i++){
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,i*per,(i+1)*per); ctx.closePath();
-    ctx.fillStyle = colors[i%colors.length]; ctx.fill();
-    ctx.save(); ctx.rotate(i*per+per/2);
-    ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
-    const label = tasks[i].name.length>7 ? tasks[i].name.slice(0,7)+'…' : tasks[i].name;
-    ctx.fillText(label, r-14, 0);
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0, r, i*per, (i+1)*per);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+
+    ctx.save();
+    ctx.rotate(i*per + per/2);
+    // 文字设置：加大字号 + 白色描边，解决模糊看不清
+    const textMaxLen = 10;
+    let label = tasks[i].name;
+    label = label.length>textMaxLen ? label.slice(0,textMaxLen)+'…' : label;
+    ctx.font='bold 15px sans-serif';
+    ctx.textAlign='right';
+    ctx.textBaseline='middle';
+    ctx.strokeStyle="#ffffff";
+    ctx.lineWidth=2;
+    ctx.strokeText(label, r-16, 0);
+    ctx.fillStyle="#222222";
+    ctx.fillText(label, r-16, 0);
     ctx.restore();
   }
   ctx.restore();
 }
+
 $('#wheelSpin').onclick = ()=>{
   if(spinning) return;
   const tasks = store.tasks.filter(t=>!t.done);
@@ -571,35 +580,63 @@ $('#wheelSpin').onclick = ()=>{
   requestAnimationFrame(anim);
 };
 
-/* ================= 3D 猫咪 (加强兼容) ================= */
+/* ================= 3D猫咪 修复加载 + 降级兜底 ================= */
 let catThree = null;
+let catLoadTried = false;
+
 function initCat(){
   const cv = $('#catCanvas');
-  if(!cv || catThree) return;
-  
-  const w = cv.clientWidth || 300;
+  const wrap = $('#catCanvasWrap');
+  if(!cv) return;
+  //清理旧实例
+  if(catThree){
+    catThree.renderer.dispose();
+    catThree = null;
+  }
+  wrap.querySelectorAll('.cat-fallback').forEach(d=>d.remove());
+
+  const w = cv.clientWidth || 320;
   cv.width = w * devicePixelRatio;
   cv.height = 300 * devicePixelRatio;
-  
-  if(!window.THREE){
-    $('#catMood').textContent = '正在加载 3D 引擎，请稍候...';
+  cv.style.display = "block";
+
+  if(!window.THREE && !catLoadTried){
+    catLoadTried = true;
+    $('#catMood').textContent = '正在加载3D猫咪资源…';
     const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; // 换用更稳定的CDN
-    s.onload = ()=>{ window.THREE = true; initCat(); };
-    s.onerror = ()=> {
-      $('#catMood').textContent = '网络波动导致 3D 模块加载失败，请刷新重试';
+    s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
+    s.onload = ()=>{
+      setTimeout(initCat,100);
+    };
+    s.onerror = ()=>{
+      //加载失败，2D emoji降级
+      cv.style.display = 'none';
+      const fb = document.createElement('div');
+      fb.className = 'cat-fallback';
+      fb.innerText = '🐱';
+      wrap.appendChild(fb);
+      $('#catMood').textContent = '3D引擎加载失败，你依然可以喂食和摸猫';
     };
     document.head.appendChild(s);
     return;
   }
-  
+  if(!window.THREE){
+    cv.style.display = 'none';
+    const fb = document.createElement('div');
+    fb.className = 'cat-fallback';
+    fb.innerText = '🐱';
+    wrap.appendChild(fb);
+    return;
+  }
+
   $('#catMood').textContent = '它正在看着你学习…';
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, cv.width/cv.height, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(45, w/300, 0.1, 100);
   camera.position.set(0, 1.6, 6);
   camera.lookAt(0, 0.6, 0);
-  const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
-  renderer.setSize(cv.width, cv.height, false);
+  const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true, powerPreference:"low-power"});
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(w, 300, false);
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.85));
   const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(3,5,4); scene.add(dl);
@@ -607,7 +644,6 @@ function initCat(){
 
   const cat = new THREE.Group();
   scene.add(cat);
-
   const palette = {
     calico:{body:0xf5f0e6, patch1:0xe8955a, patch2:0x3a3330, nose:0xffb3b3},
     tabby:{body:0x9a8a72, patch1:0x5c5040, patch2:0x3a3330, nose:0xffc4c4},
@@ -615,64 +651,65 @@ function initCat(){
     white:{body:0xf7f4ee, patch1:0xe8e2d6, patch2:0xffffff, nose:0xffb3b3},
   };
   const p = palette[store.cat.breed] || palette.calico;
-
-  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
   body.scale.set(1, 1.1, 1); body.position.y = 0.6; cat.add(body);
-  
-  const patch = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 24), new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8}));
+
+  const patch = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 20), new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8}));
   patch.scale.set(1,1.1,.5); patch.position.set(0.4,0.7,0.7); cat.add(patch);
-  const patch2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 24), new THREE.MeshStandardMaterial({color:p.patch2, roughness:.8}));
+  const patch2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), new THREE.MeshStandardMaterial({color:p.patch2, roughness:.8}));
   patch2.position.set(-0.5,0.4,0.65); cat.add(patch2);
-  
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 32), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 24, 24), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
   head.position.set(0, 1.7, 0.1); cat.add(head);
-  
-  const earGeo = new THREE.ConeGeometry(0.22, 0.42, 16);
+
+  const earGeo = new THREE.ConeGeometry(0.22, 0.42, 12);
   const earMat = new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8});
   const earL = new THREE.Mesh(earGeo, earMat); earL.position.set(-0.38,2.2,0.1); cat.add(earL);
   const earR = new THREE.Mesh(earGeo, earMat); earR.position.set(0.38,2.2,0.1); cat.add(earR);
-  
+
   const eyeMat = new THREE.MeshStandardMaterial({color:0x2c2a26, roughness:.2});
-  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16), eyeMat);
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09,12,12), eyeMat);
   eyeL.position.set(-0.22,1.78,0.62); cat.add(eyeL);
-  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16), eyeMat);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09,12,12), eyeMat);
   eyeR.position.set(0.22,1.78,0.62); cat.add(eyeR);
-  
+
   const hiMat = new THREE.MeshBasicMaterial({color:0xffffff});
   const hiL = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiL.position.set(-0.20,1.81,0.69); cat.add(hiL);
   const hiR = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiR.position.set(0.24,1.81,0.69); cat.add(hiR);
-  
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16), new THREE.MeshStandardMaterial({color:p.nose}));
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07,12,12), new THREE.MeshStandardMaterial({color:p.nose}));
   nose.position.set(0,1.62,0.7); cat.add(nose);
-  
-  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.09, 12, 40, Math.PI*1.4), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
+
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.09, 8, 30, Math.PI*1.4), new THREE.MeshStandardMaterial({color:p.body, roughness:.8}));
   tail.position.set(-0.9, 0.7, -0.4); tail.rotation.z = Math.PI*0.15; cat.add(tail);
-  
+
   const footMat = new THREE.MeshStandardMaterial({color:p.body, roughness:.8});
   [[-0.55,0.1,0.55],[0.55,0.1,0.55]].forEach(([x,y,z])=>{
-    const f = new THREE.Mesh(new THREE.SphereGeometry(0.25,16,16), footMat);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12), footMat);
     f.position.set(x,y,z); cat.add(f);
   });
 
   catThree = {scene, camera, renderer, cat, head, eyeL, eyeR, tail, t:0, happy:0};
 
   function bubble(emoji){
-    const wrap = $('#catCanvas').parentElement;
+    const wrapEl = $('#catCanvas').parentElement;
     const el = document.createElement('div'); el.className='love-bubble'; el.textContent = emoji;
     el.style.left = (40+Math.random()*60)+'%'; el.style.top = '40%';
-    wrap.appendChild(el); setTimeout(()=>el.remove(),1600);
+    wrapEl.appendChild(el); setTimeout(()=>el.remove(),1600);
   }
 
   $('#feedCat').onclick = ()=>{
     if(!store.cat.food || store.cat.food<=0){ $('#catMood').textContent = '它还不饿，完成学习获得猫粮再来吧～'; return; }
     store.cat.food--; save(); updateFoodUI();
-    catThree.happy = 1; $('#catMood').textContent = '😋 好吃！喵～ 谢谢你！'; bubble('🍖');
+    if(catThree) catThree.happy = 1;
+    $('#catMood').textContent = '😋 好吃！喵～ 谢谢你！'; bubble('🍖');
   };
   $('#petCat').onclick = ()=>{
-    catThree.happy = 1;
+    if(catThree) catThree.happy = 1;
     const msgs = ['咕噜咕噜～','蹭蹭你～','喵？','舒服！','再摸摸～'];
     $('#catMood').textContent = '😺 ' + msgs[Math.floor(Math.random()*msgs.length)]; bubble('❤️');
   };
+
   $('#catNameSave').onclick = ()=>{
     store.cat.name = $('#catName').value.trim(); save();
     $('#catMood').textContent = store.cat.name ? `${store.cat.name} 记住了自己的名字～` : '它还没名字哦';
@@ -680,26 +717,30 @@ function initCat(){
   if(store.cat.name) $('#catName').value = store.cat.name;
 
   function animate(){
+    if(!catThree) return;
     requestAnimationFrame(animate);
     catThree.t += 0.016;
-    cat.rotation.y = Math.sin(catThree.t*0.6)*0.25;
+    catThree.cat.rotation.y = Math.sin(catThree.t*0.6)*0.25;
     body.scale.y = 1.1 + Math.sin(catThree.t*2)*0.02;
     tail.rotation.z = Math.PI*0.15 + Math.sin(catThree.t*3)*0.25;
-    if(catThree.happy>0){ catThree.happy -= 0.03; cat.position.y = Math.abs(Math.sin(catThree.t*10))*0.15; } else { cat.position.y = 0; }
-    const blink = Math.sin(catThree.t*0.7) > 0.98 ? 0.2 : 1; eyeL.scale.y = blink; eyeR.scale.y = blink;
-    renderer.render(scene, camera);
+    if(catThree.happy>0){ catThree.happy -= 0.03; catThree.cat.position.y = Math.abs(Math.sin(catThree.t*10))*0.15; } else { catThree.cat.position.y = 0; }
+    const blink = Math.sin(catThree.t*0.7) > 0.98 ? 0.2 : 1;
+    eyeL.scale.y = blink; eyeR.scale.y = blink;
+    catThree.renderer.render(catThree.scene, catThree.camera);
   }
   animate();
 
   $$('#catBreed .chip').forEach(c=>{
     if(c.dataset.breed===store.cat.breed) c.classList.add('on'); else c.classList.remove('on');
     c.onclick = ()=>{
-      store.cat.breed = c.dataset.breed; save(); catThree = null;
+      store.cat.breed = c.dataset.breed; save();
+      catThree = null;
       $('#catCanvas').parentElement.querySelectorAll('.love-bubble').forEach(x=>x.remove());
       initCat();
     };
   });
 }
+
 function updateFoodUI(){ const el = $('#foodCount'); if(el) el.textContent = `(${store.cat.food || 0})`; }
 if(store.cat.name) $('#catName').value = store.cat.name;
 
@@ -722,12 +763,12 @@ $('#entryClose').onclick = ()=> $('#entryModal').classList.remove('show');
 /* ================= 初始化 ================= */
 renderHeader(); renderStats(); renderTasks(); renderWeek(); renderSlots(); updateFoodUI();
 $('#wakeTime').value = store.wake; $('#sleepTime').value = store.sleep;
-setTimeout(drawWheel, 200);
+setTimeout(drawWheel, 300);
 
 window.addEventListener('resize', ()=>{
   if(catThree && catThree.renderer){
     const w = $('#catCanvas').clientWidth || 300;
-    catThree.renderer.setSize(w*devicePixelRatio, 300*devicePixelRatio, false);
+    catThree.renderer.setSize(w, 300, false);
   }
   drawWheel();
 });
