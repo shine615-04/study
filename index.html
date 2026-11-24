@@ -56,17 +56,23 @@
   .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   
   /* 任务列表 */
-  .task{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
-  .task:last-child{border-bottom:none}
+  .task-item{border-bottom:1px dashed var(--line);}
+  .task-item:last-child{border-bottom:none}
+  .task{display:flex;gap:10px;align-items:flex-start;padding:12px 0;}
   .task .check{width:22px;height:22px;border-radius:8px;border:2px solid var(--line);flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;transition:.15s;}
-  .task.done .check{background:var(--green);border-color:var(--green)}
-  .task.done .t-name{text-decoration:line-through;color:var(--sub)}
-  .t-body{flex:1;min-width:0}
+  .task-item.done .check{background:var(--green);border-color:var(--green)}
+  .task-item.done .t-name{text-decoration:line-through;color:var(--sub)}
+  .t-body{flex:1;min-width:0; cursor:pointer;}
   .t-name{font-size:14px;word-break:break-word;font-weight:500;}
   .t-meta{font-size:11px;color:var(--sub);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
   .t-meta .urgent{color:#e0584f;font-weight:600}
   .del{background:none;color:#c9c4ba;font-size:18px;padding:0 4px;line-height:1;border:none}
   .del:hover{color:#e0584f}
+  
+  /* 任务行内编辑 */
+  .edit-panel{display:none; padding:10px; background:var(--bg); border-radius:12px; margin-bottom:12px;}
+  .edit-panel.active{display:block; animation:fade .2s ease;}
+  .edit-panel .row{margin-bottom:8px;}
   
   /* 番茄钟 */
   .timer-wrap{text-align:center;padding:6px 0}
@@ -80,8 +86,8 @@
   
   /* 转盘 */
   .wheel-wrap{position:relative;display:flex;justify-content:center;padding:10px 0}
-  canvas#wheel{max-width:100%;height:auto}
-  .wheel-pointer{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:20px solid var(--accent2);z-index:2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));}
+  canvas#wheel{max-width:100%;height:auto;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+  .wheel-pointer{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid var(--accent2);z-index:2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));}
   .wheel-result{text-align:center;font-size:16px;font-weight:700;margin-top:8px;min-height:24px;color:var(--accent)}
   
   /* 猫咪 */
@@ -104,8 +110,6 @@
   .modal p{font-size:13px;color:var(--sub);line-height:1.6;margin:0 0 16px}
   .modal .list{max-height:180px;overflow-y:auto;margin-bottom:16px}
   .modal .list div{font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}
-  
-  .settings-box{display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);}
 </style>
 </head>
 <body data-theme="default">
@@ -162,7 +166,7 @@
       <p class="muted" style="margin:8px 0 0">自动推算最晚动手时间 = DDL - 预计用时</p>
     </div>
     <div class="card">
-      <h3><span class="dot"></span>未完成事项 (点文字可修改)</h3>
+      <h3><span class="dot"></span>未完成事项 (点击文字可展开修改)</h3>
       <div id="taskList"></div>
     </div>
   </section>
@@ -280,10 +284,8 @@ function load(){
     }
   }catch(e){}
   return {
-    userName: '霖',
-    tasks: [], schedule: {}, wake:'07:00', sleep:'23:00',
-    studyLog: {}, checkinDays: [],
-    cat:{breed:'calico', name:'', food:0},
+    userName: '霖', tasks: [], schedule: {}, wake:'07:00', sleep:'23:00',
+    studyLog: {}, checkinDays: [], cat:{breed:'calico', name:'', food:0},
     theme: 'default', bgImg: ''
   };
 }
@@ -305,46 +307,36 @@ $$('nav a').forEach(a=>{
 
 /* ================= 渲染主页头部 & 设置 ================= */
 function renderHeader(){
-  const titleEl = $('#appTitle');
-  titleEl.innerHTML = `${store.userName}<span>今天学了吗</span>`;
+  $('#appTitle').innerHTML = `${store.userName}<span>今天学了吗</span>`;
   document.title = `${store.userName}今天学了吗`;
   $('#entryTitle').textContent = `${store.userName}，今天也要加油 🌱`;
 }
 function editTitle(){
   const newName = prompt('请输入你的名字：', store.userName);
   if(newName && newName.trim()){
-    store.userName = newName.trim();
-    save(); renderHeader();
+    store.userName = newName.trim(); save(); renderHeader();
+    $('#userNameInput').value = store.userName;
   }
 }
 $('#todayLabel').textContent = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
 
-// 设置页逻辑
 $('#userNameInput').value = store.userName;
 $('#userNameInput').onchange = e => { store.userName = e.target.value || '霖'; save(); renderHeader(); };
 $$('#themePicker .chip').forEach(c => {
   if(c.dataset.theme === store.theme) c.classList.add('on'); else c.classList.remove('on');
   c.onclick = () => {
-    store.theme = c.dataset.theme; save();
-    document.body.dataset.theme = store.theme;
-    $$('#themePicker .chip').forEach(x => x.classList.remove('on'));
-    c.classList.add('on');
+    store.theme = c.dataset.theme; save(); document.body.dataset.theme = store.theme;
+    $$('#themePicker .chip').forEach(x => x.classList.remove('on')); c.classList.add('on');
     setTimeout(drawWheel, 100);
   };
 });
 document.body.dataset.theme = store.theme;
-
 $('#bgImgSave').onclick = () => {
   const url = $('#bgImgInput').value.trim();
-  if(url){
-    store.bgImg = `url(${url})`; save();
-    document.body.style.setProperty('--bg-img', store.bgImg);
-  }
+  if(url){ store.bgImg = `url(${url})`; save(); document.body.style.setProperty('--bg-img', store.bgImg); }
 };
 $('#bgImgClear').onclick = () => {
-  store.bgImg = ''; save();
-  document.body.style.setProperty('--bg-img', 'none');
-  $('#bgImgInput').value = '';
+  store.bgImg = ''; save(); document.body.style.setProperty('--bg-img', 'none'); $('#bgImgInput').value = '';
 };
 if(store.bgImg) document.body.style.setProperty('--bg-img', store.bgImg);
 
@@ -356,66 +348,44 @@ function renderTimer(){
 }
 function setTimerMode(min){
   if(timer.running) return;
-  timer.total = min*60; timer.left = timer.total; timer.accumulated = 0;
-  renderTimer();
+  timer.total = min*60; timer.left = timer.total; timer.accumulated = 0; renderTimer();
   $('#timerMode').textContent = `专注 · ${min} 分钟`;
 }
 $$('.chip[data-min]').forEach(c=>{
   c.onclick = ()=>{
     if(timer.running) return;
-    $$('.chip[data-min]').forEach(x=>x.classList.remove('on'));
-    c.classList.add('on');
-    if(c.dataset.min === 'custom'){
-      $('#customTimeBox').style.display = 'block';
-    } else {
-      $('#customTimeBox').style.display = 'none';
-      setTimerMode(+c.dataset.min);
-    }
+    $$('.chip[data-min]').forEach(x=>x.classList.remove('on')); c.classList.add('on');
+    if(c.dataset.min === 'custom'){ $('#customTimeBox').style.display = 'block'; }
+    else { $('#customTimeBox').style.display = 'none'; setTimerMode(+c.dataset.min); }
   };
 });
-$('#customTimeInput').onchange = e => {
-  let v = parseInt(e.target.value);
-  if(v > 0) setTimerMode(v);
-};
+$('#customTimeInput').onchange = e => { let v = parseInt(e.target.value); if(v > 0) setTimerMode(v); };
 
 $('#timerStart').onclick = ()=>{
-  if(timer.running){
-    clearInterval(timer.id); timer.running=false; $('#timerStart').textContent='继续';
-    return;
-  }
+  if(timer.running){ clearInterval(timer.id); timer.running=false; $('#timerStart').textContent='继续'; return; }
   timer.running = true; $('#timerStart').textContent='暂停';
   timer.id = setInterval(()=>{
-    timer.left--; timer.accumulated++;
-    renderTimer();
+    timer.left--; timer.accumulated++; renderTimer();
     if(timer.left<=0){
       clearInterval(timer.id); timer.running=false; $('#timerStart').textContent='开始';
-      onFocusDone(timer.accumulated);
-      timer.accumulated = 0; timer.left = timer.total; renderTimer();
+      onFocusDone(timer.accumulated); timer.accumulated = 0; timer.left = timer.total; renderTimer();
     }
   },1000);
 };
-
 $('#timerReset').onclick = ()=>{
   if(timer.accumulated > 0){
-    if(confirm(`本次已专注 ${Math.floor(timer.accumulated/60)} 分钟，是否结算并结束？`)){
-      onFocusDone(timer.accumulated);
-    }
+    if(confirm(`本次已专注 ${Math.floor(timer.accumulated/60)} 分钟，是否结算并结束？`)){ onFocusDone(timer.accumulated); }
   }
   clearInterval(timer.id); timer.running=false; timer.left=timer.total; timer.accumulated=0;
   $('#timerStart').textContent='开始'; renderTimer();
 };
-
 function onFocusDone(seconds){
   const min = Math.floor(seconds / 60);
-  if(min < 5) {
-    alert(`专注了 ${min} 分钟，满 5 分钟才能记录和获得猫粮哦！`);
-    return;
-  }
+  if(min < 5) { alert(`专注了 ${min} 分钟，满 5 分钟才能记录和获得猫粮哦！`); return; }
   const d = todayStr();
   store.studyLog[d] = (store.studyLog[d]||0) + min;
   if(!store.checkinDays.includes(d)) store.checkinDays.push(d);
-  store.cat.food = (store.cat.food||0) + 1;
-  save(); renderStats(); updateFoodUI();
+  store.cat.food = (store.cat.food||0) + 1; save(); renderStats(); updateFoodUI();
   alert(`🎉 专注完成！记录 ${min} 分钟，打卡成功并获得 1 个猫粮～`);
 }
 function renderStats(){
@@ -425,94 +395,82 @@ function renderStats(){
   $('#stDays').textContent = store.checkinDays.length;
 }
 
-/* ================= 待办 ================= */
+/* ================= 待办 & 行内编辑 ================= */
 function renderTasks(){
   const list = $('#taskList');
   const arr = [...store.tasks].sort((a,b)=>{
     if(a.done!==b.done) return a.done?1:-1;
-    const da=a.ddl?new Date(a.ddl).getTime():Infinity;
-    const db=b.ddl?new Date(b.ddl).getTime():Infinity;
-    return da-db;
+    return (a.ddl?new Date(a.ddl).getTime():Infinity) - (b.ddl?new Date(b.ddl).getTime():Infinity);
   });
   if(!arr.length){ list.innerHTML='<p class="muted">还没有事项，去添加吧～</p>'; return; }
   
   list.innerHTML = arr.map(t=>{
-    let latestTxt = '随时';
-    let urgent = false;
-    let label = '无截止';
+    let latestTxt = '随时'; let urgent = false; let label = '无截止';
     if(t.ddl){
       const ddlTs = new Date(t.ddl).getTime();
       const diffH = (ddlTs - Date.now()) / 3600000;
       if(diffH < 0){ label='已逾期'; urgent=true; }
       else if(diffH < 24){ label=`剩 ${Math.ceil(diffH)} 小时`; urgent=true; }
       else { label=`剩 ${Math.ceil(diffH/24)} 天`; }
-      
-      const estMin = t.est || 60;
-      const latestTs = ddlTs - (estMin * 60000);
-      const lDate = new Date(latestTs);
-      latestTxt = lDate.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const latestTs = ddlTs - ((t.est || 60) * 60000);
+      latestTxt = new Date(latestTs).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
     }
     
-    return `<div class="task ${t.done?'done':''}" data-id="${t.id}">
-      <div class="check">${t.done?'✓':''}</div>
-      <div class="t-body" onclick="editTask(${t.id})">
-        <div class="t-name">${escapeHtml(t.name)}</div>
-        <div class="t-meta">
-          ${t.ddl?`<span class="${urgent?'urgent':''}">⏰ ${label}</span>`:''}
-          <span>⏳ 预计 ${t.est||60} 分</span>
-          <span style="color:var(--accent)">🚀 最晚 ${latestTxt}</span>
+    return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}">
+      <div class="task">
+        <div class="check" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
+        <div class="t-body" onclick="toggleEdit(${t.id})">
+          <div class="t-name">${escapeHtml(t.name)}</div>
+          <div class="t-meta">
+            ${t.ddl?`<span class="${urgent?'urgent':''}">⏰ ${label}</span>`:''}
+            <span>⏳ 预计 ${t.est||60} 分</span>
+            <span style="color:var(--accent)">🚀 最晚 ${latestTxt}</span>
+          </div>
+        </div>
+        <button class="del" onclick="delTask(${t.id})">×</button>
+      </div>
+      <div class="edit-panel" id="edit-${t.id}">
+        <div class="row"><input type="text" id="en-${t.id}" value="${escapeHtml(t.name)}" placeholder="名称"></div>
+        <div class="row">
+          <div style="flex:1.5"><p class="muted" style="margin:0 0 4px">截止时间(DDL)</p><input type="datetime-local" id="ed-${t.id}" value="${t.ddl||''}"></div>
+          <div style="flex:1"><p class="muted" style="margin:0 0 4px">预计用时(分)</p><input type="number" id="ee-${t.id}" value="${t.est||60}" min="5"></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="green" onclick="saveEdit(${t.id})">保存修改</button>
+          <button class="ghost" onclick="toggleEdit(${t.id})">取消</button>
         </div>
       </div>
-      <button class="del" onclick="delTask(event, ${t.id})">×</button>
     </div>`;
   }).join('');
-  
-  list.querySelectorAll('.task').forEach(el=>{
-    const id = el.dataset.id;
-    el.querySelector('.check').onclick = (e)=>{
-      e.stopPropagation();
-      const t = store.tasks.find(x=>x.id==id);
-      t.done = !t.done;
-      if(t.done){ store.cat.food = (store.cat.food||0) + 1; updateFoodUI(); }
-      save(); renderTasks(); updateEntry();
-    };
-  });
 }
-
-function editTask(id){
+function toggleEdit(id){
+  $$('.edit-panel').forEach(el => el.classList.remove('active'));
+  const panel = $(`#edit-${id}`);
+  if(panel) panel.classList.add('active');
+}
+function saveEdit(id){
   const t = store.tasks.find(x=>x.id==id);
-  if(!t) return;
-  const newName = prompt('修改事项名称：', t.name);
-  if(newName !== null && newName.trim()) t.name = newName.trim();
-  
-  const newDdl = prompt('修改截止时间 (格式: 2023-10-31T23:59，留空则无DDL)：', t.ddl);
-  if(newDdl !== null) t.ddl = newDdl.trim();
-  
-  const newEst = prompt('修改预计用时 (分钟)：', t.est || 60);
-  if(newEst !== null && !isNaN(parseInt(newEst))) t.est = parseInt(newEst);
-  
-  save(); renderTasks(); updateEntry();
-}
-function delTask(e, id){
-  e.stopPropagation();
-  if(confirm('确定删除吗？')){
-    store.tasks = store.tasks.filter(x=>x.id!=id);
+  if(t){
+    t.name = $(`#en-${id}`).value.trim() || t.name;
+    t.ddl = $(`#ed-${id}`).value || '';
+    t.est = parseInt($(`#ee-${id}`).value) || 60;
     save(); renderTasks();
   }
 }
-function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toggleTask(id){
+  const t = store.tasks.find(x=>x.id==id);
+  if(t){ t.done = !t.done; if(t.done){ store.cat.food = (store.cat.food||0)+1; updateFoodUI(); } save(); renderTasks(); }
+}
+function delTask(id){
+  if(confirm('确定删除吗？')){
+    store.tasks = store.tasks.filter(x=>x.id!=id); save(); renderTasks();
+  }
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 $('#taskAdd').onclick = ()=>{
-  const name = $('#taskName').value.trim();
-  if(!name) return;
-  store.tasks.push({
-    id:Date.now(), 
-    name, 
-    ddl:$('#taskDDL').value||'', 
-    est:parseInt($('#taskEst').value)||60,
-    done:false
-  });
-  $('#taskName').value=''; $('#taskDDL').value='';
-  save(); renderTasks();
+  const name = $('#taskName').value.trim(); if(!name) return;
+  store.tasks.push({ id:Date.now(), name, ddl:$('#taskDDL').value||'', est:parseInt($('#taskEst').value)||60, done:false });
+  $('#taskName').value=''; $('#taskDDL').value=''; save(); renderTasks();
 };
 
 /* ================= 课表 ================= */
@@ -534,54 +492,57 @@ function renderSlots(){
       <input placeholder="课程" value="${escapeHtml(s.name)}" class="s-name" style="flex:1.5">
       <button class="del" onclick="delSlot(${s.id})" style="flex:0">×</button>
     </div>`).join('') || '<p class="muted">这天还没课～</p>';
-  
   $('#slotList').querySelectorAll('.slot').forEach(el=>{
-    const id = el.dataset.id;
-    const s = store.schedule[selDay].find(x=>x.id==id);
+    const id = el.dataset.id; const s = store.schedule[selDay].find(x=>x.id==id);
     el.querySelector('.s-start').onchange = e=>{s.start=e.target.value;save();};
     el.querySelector('.s-end').onchange = e=>{s.end=e.target.value;save();};
     el.querySelector('.s-name').onchange = e=>{s.name=e.target.value;save();};
   });
 }
-function delSlot(id){
-  store.schedule[selDay] = store.schedule[selDay].filter(x=>x.id!=id);
-  save(); renderSlots();
-}
+function delSlot(id){ store.schedule[selDay] = store.schedule[selDay].filter(x=>x.id!=id); save(); renderSlots(); }
 $('#slotAdd').onclick = ()=>{
   store.schedule[selDay] = store.schedule[selDay]||[];
-  store.schedule[selDay].push({id:Date.now(), start:'08:00', end:'09:00', name:''});
-  save(); renderSlots();
+  store.schedule[selDay].push({id:Date.now(), start:'08:00', end:'09:00', name:''}); save(); renderSlots();
 };
 $('#wakeTime').onchange = e=>{store.wake=e.target.value;save();};
 $('#sleepTime').onchange = e=>{store.sleep=e.target.value;save();};
 
-/* ================= 转盘 ================= */
+/* ================= 转盘 (高清渲染) ================= */
 let wheelRot = 0, spinning = false;
 function drawWheel(){
   const cv = $('#wheel'); if(!cv) return;
+  const size = cv.clientWidth; 
+  if(size === 0) return;
+  
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = size * dpr; 
+  cv.height = size * dpr;
+  
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height, cx=W/2, cy=H/2, r=Math.min(W,H)/2-8;
-  ctx.clearRect(0,0,W,H);
-  const tasks = store.tasks.filter(t=>!t.done); // 包含所有未完成事项
+  ctx.scale(dpr, dpr);
+  const cx = size/2, cy = size/2, r = size/2 - 4;
+  ctx.clearRect(0,0,size,size);
+  
+  const tasks = store.tasks.filter(t=>!t.done);
   if(!tasks.length){
     ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--line');
     ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
     ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--sub'); 
-    ctx.font='14px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('暂无待决定事项', cx, cy+4);
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('暂无待决定事项', cx, cy);
     return;
   }
   const n = tasks.length, per = Math.PI*2/n;
   const colors = ['#6c8cff','#ff9f6b','#4bb98a','#e07fb5','#b08cff','#5bc9d6','#f2c14e'];
+  
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(wheelRot);
   for(let i=0;i<n;i++){
-    ctx.beginPath(); ctx.moveTo(0,0);
-    ctx.arc(0,0,r,i*per,(i+1)*per); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,i*per,(i+1)*per); ctx.closePath();
     ctx.fillStyle = colors[i%colors.length]; ctx.fill();
     ctx.save(); ctx.rotate(i*per+per/2);
-    ctx.fillStyle='#fff'; ctx.font='bold 12px sans-serif'; ctx.textAlign='right';
-    const label = tasks[i].name.length>6 ? tasks[i].name.slice(0,6)+'…' : tasks[i].name;
-    ctx.fillText(label, r-14, 4);
+    ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+    const label = tasks[i].name.length>7 ? tasks[i].name.slice(0,7)+'…' : tasks[i].name;
+    ctx.fillText(label, r-14, 0);
     ctx.restore();
   }
   ctx.restore();
@@ -602,7 +563,6 @@ $('#wheelSpin').onclick = ()=>{
     else{
       spinning = false;
       const n = tasks.length, per = Math.PI*2/n;
-      let ang = ((-wheelRot % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
       let idx = Math.floor(((Math.PI*1.5 - wheelRot) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) / per);
       idx = (n - idx) % n;
       $('#wheelResult').textContent = '👉 就决定是你了：' + tasks[idx].name;
@@ -611,23 +571,29 @@ $('#wheelSpin').onclick = ()=>{
   requestAnimationFrame(anim);
 };
 
-/* ================= 3D 猫咪 ================= */
+/* ================= 3D 猫咪 (加强兼容) ================= */
 let catThree = null;
 function initCat(){
   const cv = $('#catCanvas');
   if(!cv || catThree) return;
-  cv.width = cv.clientWidth * devicePixelRatio;
+  
+  const w = cv.clientWidth || 300;
+  cv.width = w * devicePixelRatio;
   cv.height = 300 * devicePixelRatio;
+  
   if(!window.THREE){
+    $('#catMood').textContent = '正在加载 3D 引擎，请稍候...';
     const s = document.createElement('script');
-    s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; // 换用更稳定的CDN
     s.onload = ()=>{ window.THREE = true; initCat(); };
     s.onerror = ()=> {
-      $('#catMood').textContent = '3D模块加载失败，请检查网络';
+      $('#catMood').textContent = '网络波动导致 3D 模块加载失败，请刷新重试';
     };
     document.head.appendChild(s);
     return;
   }
+  
+  $('#catMood').textContent = '它正在看着你学习…';
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, cv.width/cv.height, 0.1, 100);
   camera.position.set(0, 1.6, 6);
@@ -655,7 +621,6 @@ function initCat(){
   
   const patch = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 24), new THREE.MeshStandardMaterial({color:p.patch1, roughness:.8}));
   patch.scale.set(1,1.1,.5); patch.position.set(0.4,0.7,0.7); cat.add(patch);
-  
   const patch2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 24), new THREE.MeshStandardMaterial({color:p.patch2, roughness:.8}));
   patch2.position.set(-0.5,0.4,0.65); cat.add(patch2);
   
@@ -674,10 +639,8 @@ function initCat(){
   eyeR.position.set(0.22,1.78,0.62); cat.add(eyeR);
   
   const hiMat = new THREE.MeshBasicMaterial({color:0xffffff});
-  const hiL = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat);
-  hiL.position.set(-0.20,1.81,0.69); cat.add(hiL);
-  const hiR = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat);
-  hiR.position.set(0.24,1.81,0.69); cat.add(hiR);
+  const hiL = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiL.position.set(-0.20,1.81,0.69); cat.add(hiL);
+  const hiR = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hiMat); hiR.position.set(0.24,1.81,0.69); cat.add(hiR);
   
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16), new THREE.MeshStandardMaterial({color:p.nose}));
   nose.position.set(0,1.62,0.7); cat.add(nose);
@@ -693,38 +656,28 @@ function initCat(){
 
   catThree = {scene, camera, renderer, cat, head, eyeL, eyeR, tail, t:0, happy:0};
 
-  const moodEl = $('#catMood');
-  function setMood(txt){ moodEl.textContent = txt; }
+  function bubble(emoji){
+    const wrap = $('#catCanvas').parentElement;
+    const el = document.createElement('div'); el.className='love-bubble'; el.textContent = emoji;
+    el.style.left = (40+Math.random()*60)+'%'; el.style.top = '40%';
+    wrap.appendChild(el); setTimeout(()=>el.remove(),1600);
+  }
 
   $('#feedCat').onclick = ()=>{
-    if(!store.cat.food || store.cat.food<=0){ setMood('它还不饿，完成学习获得猫粮再来吧～'); return; }
+    if(!store.cat.food || store.cat.food<=0){ $('#catMood').textContent = '它还不饿，完成学习获得猫粮再来吧～'; return; }
     store.cat.food--; save(); updateFoodUI();
-    catThree.happy = 1;
-    setMood('😋 好吃！喵～ 谢谢你！');
-    bubble('🍖');
+    catThree.happy = 1; $('#catMood').textContent = '😋 好吃！喵～ 谢谢你！'; bubble('🍖');
   };
   $('#petCat').onclick = ()=>{
     catThree.happy = 1;
     const msgs = ['咕噜咕噜～','蹭蹭你～','喵？','舒服！','再摸摸～'];
-    setMood('😺 ' + msgs[Math.floor(Math.random()*msgs.length)]);
-    bubble('❤️');
+    $('#catMood').textContent = '😺 ' + msgs[Math.floor(Math.random()*msgs.length)]; bubble('❤️');
   };
   $('#catNameSave').onclick = ()=>{
-    store.cat.name = $('#catName').value.trim();
-    save(); setMood(store.cat.name? `${store.cat.name} 记住了自己的名字～` : '它还没名字哦');
+    store.cat.name = $('#catName').value.trim(); save();
+    $('#catMood').textContent = store.cat.name ? `${store.cat.name} 记住了自己的名字～` : '它还没名字哦';
   };
   if(store.cat.name) $('#catName').value = store.cat.name;
-
-  function bubble(emoji){
-    const wrap = $('#catCanvas').parentElement;
-    const el = document.createElement('div');
-    el.className='love-bubble';
-    el.textContent = emoji;
-    el.style.left = (40+Math.random()*60)+'%';
-    el.style.top = '40%';
-    wrap.appendChild(el);
-    setTimeout(()=>el.remove(),1600);
-  }
 
   function animate(){
     requestAnimationFrame(animate);
@@ -732,14 +685,8 @@ function initCat(){
     cat.rotation.y = Math.sin(catThree.t*0.6)*0.25;
     body.scale.y = 1.1 + Math.sin(catThree.t*2)*0.02;
     tail.rotation.z = Math.PI*0.15 + Math.sin(catThree.t*3)*0.25;
-    if(catThree.happy>0){
-      catThree.happy -= 0.03;
-      cat.position.y = Math.abs(Math.sin(catThree.t*10))*0.15;
-    } else {
-      cat.position.y = 0;
-    }
-    const blink = Math.sin(catThree.t*0.7) > 0.98 ? 0.2 : 1;
-    eyeL.scale.y = blink; eyeR.scale.y = blink;
+    if(catThree.happy>0){ catThree.happy -= 0.03; cat.position.y = Math.abs(Math.sin(catThree.t*10))*0.15; } else { cat.position.y = 0; }
+    const blink = Math.sin(catThree.t*0.7) > 0.98 ? 0.2 : 1; eyeL.scale.y = blink; eyeR.scale.y = blink;
     renderer.render(scene, camera);
   }
   animate();
@@ -747,19 +694,13 @@ function initCat(){
   $$('#catBreed .chip').forEach(c=>{
     if(c.dataset.breed===store.cat.breed) c.classList.add('on'); else c.classList.remove('on');
     c.onclick = ()=>{
-      store.cat.breed = c.dataset.breed; save();
-      catThree = null;
-      const ctx = $('#catCanvas').getContext('2d');
-      if(ctx) ctx.clearRect(0,0,999,999);
+      store.cat.breed = c.dataset.breed; save(); catThree = null;
       $('#catCanvas').parentElement.querySelectorAll('.love-bubble').forEach(x=>x.remove());
       initCat();
     };
   });
 }
-function updateFoodUI(){
-  const el = $('#foodCount');
-  if(el) el.textContent = `(${store.cat.food || 0})`;
-}
+function updateFoodUI(){ const el = $('#foodCount'); if(el) el.textContent = `(${store.cat.food || 0})`; }
 if(store.cat.name) $('#catName').value = store.cat.name;
 
 /* ================= 进入弹窗 ================= */
@@ -767,15 +708,12 @@ function updateEntry(){
   const pending = store.tasks.filter(t=>!t.done);
   const list = $('#entryList');
   if(!pending.length){
-    $('#entryText').textContent = '今天没有待办，去打卡学习或者陪陪小宠吧～';
-    list.innerHTML = '';
+    $('#entryText').textContent = '今天没有待办，去打卡学习或者陪陪小宠吧～'; list.innerHTML = '';
   } else {
     const urgent = pending.filter(t => t.ddl && (new Date(t.ddl).getTime() - Date.now()) < 24*3600000);
     $('#entryText').textContent = `你有 ${pending.length} 项未完成，其中 ${urgent.length} 项紧急：`;
     const show = urgent.length ? urgent : pending;
-    list.innerHTML = show.slice(0,5).map(t=>{
-      return `<div>${urgent.length?'🔴':'🟡'} ${escapeHtml(t.name)}</div>`;
-    }).join('');
+    list.innerHTML = show.slice(0,5).map(t=>`<div>${urgent.length?'🔴':'🟡'} ${escapeHtml(t.name)}</div>`).join('');
   }
 }
 setTimeout(()=>{ updateEntry(); $('#entryModal').classList.add('show'); }, 500);
@@ -784,12 +722,14 @@ $('#entryClose').onclick = ()=> $('#entryModal').classList.remove('show');
 /* ================= 初始化 ================= */
 renderHeader(); renderStats(); renderTasks(); renderWeek(); renderSlots(); updateFoodUI();
 $('#wakeTime').value = store.wake; $('#sleepTime').value = store.sleep;
-setTimeout(drawWheel, 100);
+setTimeout(drawWheel, 200);
 
 window.addEventListener('resize', ()=>{
   if(catThree && catThree.renderer){
-    catThree.renderer.setSize($('#catCanvas').clientWidth*devicePixelRatio, 300*devicePixelRatio, false);
+    const w = $('#catCanvas').clientWidth || 300;
+    catThree.renderer.setSize(w*devicePixelRatio, 300*devicePixelRatio, false);
   }
+  drawWheel();
 });
 </script>
 </body>
