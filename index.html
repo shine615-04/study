@@ -1,200 +1,329 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>作业规划 + 番茄专注</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-*{box-sizing:border-box}
-body{font-family:system-ui,-apple-system}
-.pet{font-size:4rem;line-height:1}
-.timer-num{font-size:5rem;font-weight:bold;letter-spacing:2px}
-.focus-page{position:fixed;inset:0;background:#f8fafc;z-index:99;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px}
-.focus-page.active{display:flex}
-.bubble{background:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 2px 8px #00000015}
-input[type="color"]{width:40px;height:40px;border:none;border-radius:50%;cursor:pointer}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>作业规划小助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --theme:#6366f1;
+    }
+    *{
+      transition: all 0.25s ease;
+    }
+    .theme-bg{
+      background-color: var(--theme);
+    }
+    .theme-text{
+      color: var(--theme);
+    }
+    .theme-border{
+      border-color: var(--theme);
+    }
+    .focus-page{
+      position:fixed;
+      inset:0;
+      z-index:99;
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.85);
+      color:#fff;
+    }
+    .focus-page.active{
+      display:flex;
+    }
+    .pet-talk{
+      position:relative;
+      background:#fff;
+      color:#333;
+      padding:8px 12px;
+      border-radius:12px;
+      font-size:14px;
+    }
+    .wheel-container{
+      position:relative;
+      width:260px;
+      height:260px;
+    }
+    #wheel{
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      border:4px solid var(--theme);
+      transition: transform 4s cubic-bezier(0.2,0.8,0.2,1);
+    }
+  </style>
 </head>
-<body class="bg-slate-50 p-4 max-w-xl mx-auto">
-<h1 class="text-2xl font-bold mb-4">📚 作业规划工具</h1>
+<body class="min-h-screen bg-slate-50" id="mainBody">
+  <div class="max-w-4xl mx-auto p-4 space-y-6">
+    <div class="flex flex-wrap justify-between items-center gap-3">
+      <h1 class="text-2xl font-bold theme-text">📚 作业规划小助手</h1>
+      <div class="flex gap-2 flex-wrap items-center">
+        <label class="text-sm">主题色：</label>
+        <input type="color" id="colorPicker" value="#6366f1" class="w-8 h-8 cursor-pointer rounded">
+        <label class="text-sm">背景图：</label>
+        <input type="file" id="bgUpload" accept="image/*" class="text-sm">
+      </div>
+    </div>
 
-<div class="mb-4 flex items-center gap-2">
-<span>主题色：</span>
-<input id="themeColor" type="color" value="#60a5fa">
-</div>
+    <!-- 宠物区 -->
+    <div class="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+      <div>
+        <div class="text-5xl" id="petEmoji">🐱</div>
+        <div class="pet-talk mt-2 hidden" id="petMsg">太棒啦，任务完成！</div>
+      </div>
+      <div class="space-y-2">
+        <div class="flex gap-2">
+          <button onclick="setPet('cat')" class="px-3 py-1 rounded border theme-border">猫咪 🐱</button>
+          <button onclick="setPet('dog')" class="px-3 py-1 rounded border theme-border">小狗 🐶</button>
+        </div>
+        <div>宠物名字：<input id="petName" class="border rounded px-2 py-1 w-28" onchange="savePet()"></div>
+      </div>
+    </div>
 
-<div class="bg-white rounded-xl p-4 shadow mb-4">
-<h2 class="font-semibold mb-2">选择宠物</h2>
-<div class="flex gap-4">
-<button onclick="selectPet('🐱','小猫')" class="px-4 py-2 rounded-lg border pet-btn">🐱 猫猫</button>
-<button onclick="selectPet('🐶','小狗')" class="px-4 py-2 rounded-lg border pet-btn">🐶 狗狗</button>
-</div>
-<div class="mt-3 flex items-center gap-2">
-<span id="petShow" class="pet">🐱</span>
-<span id="petTalk" class="bubble">你好呀，快添加任务吧！</span>
-</div>
-</div>
+    <!-- 添加任务 -->
+    <div class="bg-white rounded-xl shadow p-4 space-y-3">
+      <h2 class="font-semibold">➕ 添加作业任务</h2>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <input type="text" id="taskName" placeholder="作业名称" class="border rounded px-3 py-2">
+        <input type="datetime-local" id="deadline" class="border rounded px-3 py-2">
+        <input type="number" id="needHour" placeholder="预估耗时(小时)" step="0.5" min="0.25" class="border rounded px-3 py-2">
+        <button onclick="addTask()" class="theme-bg text-white rounded">添加任务</button>
+      </div>
+    </div>
 
-<div class="bg-white rounded-xl p-4 shadow mb-4">
-<h2 class="font-semibold mb-2">新增任务</h2>
-<div class="grid gap-2">
-<input id="taskName" placeholder="作业名称" class="border rounded px-3 py-2">
-<input id="taskDeadline" type="datetime-local" class="border rounded px-3 py-2">
-<input id="taskHour" type="number" min="0.5" step="0.5" placeholder="预估耗时(小时)" class="border rounded px-3 py-2">
-<button onclick="addTask()" class="bg-blue-400 text-white py-2 rounded-lg">添加任务</button>
-</div>
-</div>
+    <!-- 任务列表 -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <h2 class="font-semibold mb-3">📋 任务清单（按紧急排序）</h2>
+      <div id="taskList" class="space-y-2"></div>
+    </div>
 
-<div class="bg-white rounded-xl p-4 shadow mb-4">
-<h2 class="font-semibold mb-2">任务列表（按紧急排序）</h2>
-<div id="taskList" class="mt-2 space-y-2"></div>
-</div>
+    <!-- 转盘 -->
+    <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+      <h2 class="font-semibold mb-3">🎲 随机转盘</h2>
+      <div class="wheel-container">
+        <svg id="wheel" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="48" fill="none" stroke="#ddd" stroke-width="1"/>
+          <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" font-size="6">待转</text>
+        </svg>
+      </div>
+      <button onclick="spinWheel()" class="theme-bg text-white px-4 py-2 rounded mt-3">转动转盘</button>
+      <div id="wheelResult" class="mt-2 theme-text font-medium"></div>
+    </div>
+  </div>
 
-<!-- 番茄专注页 -->
-<div class="focus-page" id="focusPage">
-<div id="focusPet" class="pet">🐱</div>
-<div class="timer-num" id="timerText">25:00</div>
-<div class="text-lg" id="focusTaskName"></div>
-<div class="flex gap-3">
-<button onclick="startTimer()" class="px-5 py-2 bg-green-400 rounded-lg text-white">开始</button>
-<button onclick="pauseTimer()" class="px-5 py-2 bg-amber-400 rounded-lg text-white">暂停</button>
-<button onclick="stopTimer()" class="px-5 py-2 bg-red-400 rounded-lg text-white">退出专注</button>
-</div>
-<div class="mt-2">
-<label>白噪音：</label>
-<select id="bgAudio">
-<option value="">无</option>
-<option value="rain">雨声</option>
-<option value="cafe">咖啡馆</option>
-<option value="forest">森林</option>
-</select>
-</div>
-</div>
-
-<audio id="rainAudio" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-light-rain-ambience-1170.mp3">
-<audio id="cafeAudio" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-restaurant-and-cafe-ambience-1201.mp3">
-<audio id="forestAudio" loop><source src="https://assets.mixkit.co/sfx/preview/mixkit-forest-stream-ambience-1163.mp3">
+  <!-- 专注全屏页 -->
+  <div class="focus-page" id="focusPage">
+    <div class="text-7xl font-mono mb-8" id="timerText">25:00</div>
+    <div class="flex gap-3 mb-6">
+      <button onclick="startTimer()" class="px-5 py-2 rounded bg-green-500 text-white">开始</button>
+      <button onclick="pauseTimer()" class="px-5 py-2 rounded bg-amber-500 text-white">暂停</button>
+      <button onclick="exitTimer()" class="px-5 py-2 rounded bg-red-500 text-white">退出</button>
+    </div>
+    <div class="mb-4">
+      <span class="mr-2">白噪音：</span>
+      <select id="noiseSelect" class="px-2 py-1 rounded">
+        <option value="">关闭</option>
+        <option value="rain">雨声</option>
+        <option value="forest">森林</option>
+        <option value="wave">海浪</option>
+      </select>
+    </div>
+    <audio id="noiseAudio" loop>
+  </div>
 
 <script>
-let petEmoji = "🐱";
-let petName = "小猫";
-let tasks = JSON.parse(localStorage.getItem("taskList")) || [];
-let timerInterval = null;
-let remainSec = 25 * 60;
-let currentFocusTask = null;
-let audioEl = null;
+// 数据
+let taskList = JSON.parse(localStorage.getItem("tasks"))||[];
+let petType = localStorage.getItem("petType")||"cat";
+let petNick = localStorage.getItem("petNick")||"小宝贝";
+let themeColor = localStorage.getItem("themeColor")||"#6366f1";
+let bgImg = localStorage.getItem("bgImg")||"";
+
+let focusMin = 25;
+let remainSec = focusMin*60;
+let timerRun = false;
+let timerId = null;
+let audioCtx;
+
+// 初始化
+document.documentElement.style.setProperty('--theme',themeColor);
+document.getElementById("colorPicker").value=themeColor;
+if(bgImg) document.getElementById("mainBody").style.backgroundImage=`url(${bgImg})`;
+setPet(petType,false);
+document.getElementById("petName").value=petNick;
+renderTask();
 
 // 主题色
-const colorInput = document.getElementById("themeColor");
-colorInput.oninput = ()=>{
-  document.documentElement.style.setProperty("--tc", colorInput.value);
-  document.querySelectorAll(".bg-blue-400").forEach(el=>el.style.backgroundColor=colorInput.value);
+document.getElementById("colorPicker").oninput=e=>{
+  themeColor=e.target.value;
+  document.documentElement.style.setProperty('--theme',themeColor);
+  localStorage.setItem("themeColor",themeColor);
+}
+// 背景上传
+document.getElementById("bgUpload").onchange=e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    bgImg=ev.target.result;
+    document.getElementById("mainBody").style.backgroundImage=`url(${bgImg})`;
+    localStorage.setItem("bgImg",bgImg);
+  }
+  r.readAsDataURL(f);
 }
 
-function selectPet(emoji,name){
-  petEmoji = emoji; petName = name;
-  document.getElementById("petShow").textContent = petEmoji;
-  document.getElementById("petTalk").textContent = `${petName}陪你加油！`;
-  localStorage.setItem("pet",JSON.stringify({emoji,name}));
+// 宠物
+function setPet(type,save=true){
+  petType=type;
+  document.getElementById("petEmoji").innerText=type==="cat"?"🐱":"🐶";
+  if(save) savePet();
 }
-const savedPet = JSON.parse(localStorage.getItem("pet"));
-if(savedPet) selectPet(savedPet.emoji,savedPet.name);
+function savePet(){
+  petNick=document.getElementById("petName").value;
+  localStorage.setItem("petType",petType);
+  localStorage.setItem("petNick",petNick);
+}
+function showPetTalk(txt){
+  const el=document.getElementById("petMsg");
+  el.innerText=txt;
+  el.classList.remove("hidden");
+  setTimeout(()=>el.classList.add("hidden"),2200);
+}
 
 // 任务
 function addTask(){
-  const name = document.getElementById("taskName").value.trim();
-  const dl = document.getElementById("taskDeadline").value;
-  const hour = Number(document.getElementById("taskHour").value);
-  if(!name||!dl||!hour) return alert("填完整");
-  const task = {id:Date.now(),name,deadline:dl,hour,startLatest:new Date(dl).getTime() - hour*3600*1000,done:false};
-  tasks.push(task);
-  saveTask(); renderTask();
+  const name=document.getElementById("taskName").value.trim();
+  const dl=document.getElementById("deadline").value;
+  const hour=Number(document.getElementById("needHour").value);
+  if(!name||!dl||!hour) return alert("信息填完整");
+  const dlTime=new Date(dl).getTime();
+  const latestStart=dlTime-hour*3600000;
+  taskList.push({name,dl,dlTime,hour,latestStart,done:false});
+  saveTask();
+  renderTask();
+  document.getElementById("taskName").value="";
 }
-function saveTask(){localStorage.setItem("taskList",JSON.stringify(tasks))}
+function saveTask(){
+  localStorage.setItem("tasks",JSON.stringify(taskList));
+}
 function renderTask(){
-  tasks.sort((a,b)=>a.startLatest - b.startLatest);
-  const wrap = document.getElementById("taskList");
-  wrap.innerHTML = "";
-  tasks.forEach(t=>{
-    const div = document.createElement("div");
-    div.className = "p-2 border rounded flex justify-between items-center";
-    div.innerHTML = `
-    <div>
-    <div>${t.name}</div>
-    <div class="text-xs text-slate-500">最晚开始：${new Date(t.startLatest).toLocaleString()}</div>
-    </div>
-    <div class="flex gap-2">
-    <button onclick="openFocus(${t.id})" class="text-sm bg-green-100 px-2 py-1 rounded">专注</button>
-    <button onclick="doneTask(${t.id})" class="text-sm bg-sky-100 px-2 py-1 rounded">完成</button>
-    <button onclick="delTask(${t.id})" class="text-sm bg-red-100 px-2 py-1 rounded">删</button>
-    </div>`;
+  const wrap=document.getElementById("taskList");
+  taskList.sort((a,b)=>a.latestStart-b.latestStart);
+  wrap.innerHTML="";
+  taskList.forEach((t,idx)=>{
+    const div=document.createElement("div");
+    div.className="p-3 border rounded flex justify-between items-center";
+    div.innerHTML=`
+      <div>
+        <div class="${t.done?'line-through opacity-60':''}">${t.name}</div>
+        <div class="text-xs text-gray-500">截止：${t.dl}｜最晚开始：${new Date(t.latestStart).toLocaleString()}</div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="openFocus(${idx})" class="text-sm px-2 py-1 theme-bg text-white rounded">专注</button>
+        <button onclick="finishTask(${idx})" class="text-sm px-2 py-1 bg-green-400 text-white rounded">完成</button>
+        <button onclick="delTask(${idx})" class="text-sm px-2 py-1 bg-red-400 text-white rounded">删除</button>
+      </div>
+    `;
     wrap.appendChild(div);
   })
 }
-function doneTask(id){
-  const t = tasks.find(x=>x.id===id);
-  if(!t) return;
-  t.done = true;
-  document.getElementById("petTalk").textContent = "太棒啦！给"+petName+"喂零食✨";
-  saveTask(); renderTask();
+function finishTask(i){
+  taskList[i].done=true;
+  saveTask();renderTask();
+  showPetTalk("做得太棒啦🥳");
 }
-function delTask(id){
-  tasks = tasks.filter(x=>x.id!==id); saveTask(); renderTask();
+function delTask(i){
+  taskList.splice(i,1);
+  saveTask();renderTask();
 }
 
-// 番茄钟
-function openFocus(id){
-  currentFocusTask = tasks.find(x=>x.id===id);
-  if(!currentFocusTask) return;
-  remainSec = 25*60;
-  document.getElementById("focusTaskName").textContent = currentFocusTask.name;
-  document.getElementById("focusPet").textContent = petEmoji;
+// 番茄专注
+function openFocus(idx){
   document.getElementById("focusPage").classList.add("active");
-  renderTimer();
-}
-function renderTimer(){
-  const m = Math.floor(remainSec/60).toString().padStart(2,"0");
-  const s = (remainSec%60).toString().padStart(2,"0");
-  document.getElementById("timerText").innerText = `${m}:${s}`;
+  remainSec=25*60;
+  updateTimerText();
+  timerRun=false;
+  if(timerId) clearInterval(timerId);
 }
 function startTimer(){
-  if(timerInterval) return;
-  const soundType = document.getElementById("bgAudio").value;
-  if(soundType){
-    if(audioEl) audioEl.pause();
-    audioEl = document.getElementById(soundType+"Audio");
-    audioEl.play();
-  }
-  timerInterval = setInterval(()=>{
-    remainSec--; renderTimer();
+  if(timerRun) return;
+  timerRun=true;
+  timerId=setInterval(()=>{
+    remainSec--;
+    updateTimerText();
     if(remainSec<=0){
-      pauseTimer();
-      alert("时间到！");
-      vibrateOnce();
+      clearInterval(timerId);
+      timerRun=false;
+      alert("专注时间结束！");
     }
   },1000)
 }
 function pauseTimer(){
-  clearInterval(timerInterval);
-  timerInterval = null;
-  if(audioEl) audioEl.pause();
-  // ====== 暂停触发振动（重点新增）======
-  vibrateOnce();
+  if(!timerRun) return;
+  clearInterval(timerId);
+  timerRun=false;
+  if(navigator.vibrate) navigator.vibrate(150);
 }
-function stopTimer(){
-  pauseTimer();
+function exitTimer(){
+  clearInterval(timerId);
+  timerRun=false;
+  remainSec=25*60;
+  updateTimerText();
   document.getElementById("focusPage").classList.remove("active");
+  document.getElementById("noiseAudio").pause();
 }
-// 振动函数，兼容判断，不会在不支持的设备报错
-function vibrateOnce(){
-  if('vibrate' in navigator){
-    // 震动模式：短震两下，手感柔和
-    navigator.vibrate([120,80,120]);
-  }
+function updateTimerText(){
+  const m=Math.floor(remainSec/60);
+  const s=remainSec%60;
+  document.getElementById("timerText").innerText=String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
 }
 
-renderTask();
+// 白噪音简易模拟
+document.getElementById("noiseSelect").onchange=async e=>{
+  const sel=e.target.value;
+  const aud=document.getElementById("noiseAudio");
+  if(!sel){aud.pause();return;}
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  aud.src="";
+  aud.pause();
+  const buf=await makeNoise(sel);
+  const src=audioCtx.createBufferSource();
+  src.buffer=buf;
+  src.loop=true;
+  src.connect(audioCtx.destination);
+  src.start();
+}
+async function makeNoise(type){
+  const dur=3;
+  const rate=audioCtx.sampleRate;
+  const buf=audioCtx.createBuffer(1,rate*dur,rate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){
+    if(type==="rain") d[i]=(Math.random()-0.5)*0.25;
+    else if(type==="forest") d[i]=(Math.random()-0.5)*0.18;
+    else d[i]=(Math.random()-0.5)*0.22;
+  }
+  return buf;
+}
+
+// 转盘
+let spinDeg=0;
+function spinWheel(){
+  spinDeg += 1080 + Math.random()*720;
+  document.getElementById("wheel").style.transform=`rotate(${spinDeg}deg)`;
+  setTimeout(()=>{
+    const list=taskList.filter(x=>!x.done);
+    if(list.length===0) document.getElementById("wheelResult").innerText="暂无待办任务";
+    else {
+      const pick=list[Math.floor(Math.random()*list.length)];
+      document.getElementById("wheelResult").innerText="选中："+pick.name;
+    }
+  },4000)
+}
 </script>
 </body>
 </html>
